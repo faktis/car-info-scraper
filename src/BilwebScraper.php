@@ -188,8 +188,6 @@ class BilwebScraper
             $model,
             $modelYear,
             $registrationNumber,
-            null,
-            null,
             $sourceUrl
         );
     }

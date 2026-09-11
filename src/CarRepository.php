@@ -1,26 +1,19 @@
 <?php
 
+require_once __DIR__ . '/Car.php';
+
 class CarRepository
 {
     public function __construct( private PDO $connection) {}
 
-    public function insert(
-        string $make,
-        string $model,
-        ?int $modelYear,
-        ?string $registrationNumber,
-        ?string $title = null,
-        ?string $description = null,
-        ?string $sourceUrl = null
-    ): int {
+    public function insert( Car $car ): bool
+    {
         $sql = "
-            INSERT INTO cars (
+            INSERT IGNORE INTO cars (
                 make,
                 model,
                 model_year,
                 registration_number,
-                title,
-                description,
                 source_url
             )
             VALUES (
@@ -28,26 +21,23 @@ class CarRepository
                 :model,
                 :model_year,
                 :registration_number,
-                :title,
-                :description,
                 :source_url
             )
         ";
 
-        $statement = $this->connection->prepare($sql);
+        $statement = $this->connection->prepare(
+            $sql
+        );
 
-        $statement -> execute(
-        [
-            'make' => $make,
-            'model' => $model,
-            'model_year' => $modelYear,
-            'registration_number' => $registrationNumber,
-            'title' => $title,
-            'description' => $description,
-            'source_url' => $sourceUrl
+        $statement->execute([
+            'make' => $car->make,
+            'model' => $car->model,
+            'model_year' => $car->modelYear,
+            'registration_number' => $car->registrationNumber,
+            'source_url' => $car->sourceUrl
         ]);
 
-        return (int) $this -> connection -> lastInsertId();
+        return $statement->rowCount() > 0;
     }
 
     public function findById(int $id): ?array
@@ -59,8 +49,6 @@ class CarRepository
                 model,
                 model_year,
                 registration_number,
-                title,
-                description,
                 source_url,
                 created_at
             FROM cars
@@ -87,8 +75,6 @@ class CarRepository
                 model,
                 model_year,
                 registration_number,
-                title,
-                description,
                 source_url,
                 created_at
             FROM cars
@@ -114,8 +100,6 @@ class CarRepository
                 model,
                 model_year,
                 registration_number,
-                title,
-                description,
                 source_url,
                 created_at
             FROM cars
@@ -144,8 +128,6 @@ class CarRepository
                 model = :model,
                 model_year = :model_year,
                 registration_number = :registration_number,
-                title = :title,
-                description = :description,
                 source_url = :source_url
             WHERE id = :id
         ";
@@ -158,8 +140,6 @@ class CarRepository
             'model' => $model,
             'model_year' => $modelYear,
             'registration_number' => $registrationNumber,
-            'title' => $title,
-            'description' => $description,
             'source_url' => $sourceUrl
         ]);
     }

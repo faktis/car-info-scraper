@@ -2,6 +2,8 @@
 
 require_once __DIR__ . '/src/HttpClient.php';
 require_once __DIR__ . '/src/BilwebScraper.php';
+require_once __DIR__ . '/src/Database.php';
+require_once __DIR__ . '/src/CarRepository.php';
 
 $httpClient = new HttpClient();
 
@@ -9,19 +11,23 @@ $scraper = new BilwebScraper(
     $httpClient
 );
 
-$vehicleUrls = $scraper->getVehicleUrls(20);
+$database = new Database();
 
-echo 'Unique vehicle URLs found: '
-    . count($vehicleUrls)
-    . '<br>';
+$repository = new CarRepository(
+    $database->getConnection()
+);
 
-$vehicleUrl = $vehicleUrls[15];
+$vehicleUrls = $scraper
+    ->getVehicleUrls(20);
 
-$vehicleInfo = $scraper
-    ->getVehicleInformation(
-        $vehicleUrl
-    );
+$car = $scraper->getCar(
+    $vehicleUrls[0]
+);
 
-echo '<pre>';
-print_r($vehicleInfo);
-echo '</pre>';
+$inserted = $repository->insert(
+    $car
+);
+
+echo $inserted
+    ? 'Car inserted'
+    : 'Car already existed';

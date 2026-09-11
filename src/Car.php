@@ -7,8 +7,6 @@ class Car
         public string $model,
         public ?int $modelYear,
         public ?string $registrationNumber,
-        public ?string $title,
-        public ?string $description,
         public string $sourceUrl
     ) {}
 }
