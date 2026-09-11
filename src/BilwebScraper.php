@@ -69,4 +69,40 @@ class BilwebScraper
 
         return $vehicleUrls;
     }
+
+    public function getVehicleUrls(int $minimumCount): array
+    {
+        $vehicleUrls = [];
+        $page = 1;
+
+        while (count($vehicleUrls) < $minimumCount) 
+        {
+            $countBefore = count($vehicleUrls); // Store the count before fetching new URLs to detect if no new URLs are found
+
+            $pageUrls = $this->getVehicleUrlsFromPage($page);
+
+            if (count($pageUrls) === 0) {
+                break;
+            }
+
+            $vehicleUrls = array_merge(
+                $vehicleUrls,
+                $pageUrls
+            );
+
+            $vehicleUrls = array_values(
+                array_unique($vehicleUrls)
+            );
+            
+            $countAfter = count($vehicleUrls); // Store the count after fetching new URLs
+            if ($countAfter === $countBefore) {
+                break; // Break the loop if no new URLs were found
+            }
+            $page++;
+
+            usleep(200000);
+        }
+
+        return $vehicleUrls;
+    }
 }
