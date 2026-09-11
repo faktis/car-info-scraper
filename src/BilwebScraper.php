@@ -105,4 +105,73 @@ class BilwebScraper
 
         return $vehicleUrls;
     }
+
+    public function getVehicleInformation( string $vehicleUrl ): array 
+    {
+        $html = $this->httpClient->get(
+            $vehicleUrl
+        );
+
+        $document = new DOMDocument();
+
+        libxml_use_internal_errors(true);
+
+        $document->loadHTML($html);
+
+        libxml_clear_errors();
+
+        $xpath = new DOMXPath(
+            $document
+        );
+
+        $vehicleInfoGrids = $xpath->query(
+            '//h4[normalize-space()="Fordonsinformation"]/parent::button/following-sibling::div[1]//div[contains(@class, "grid")][1]'
+        );
+
+        $vehicleInfoGrid = $vehicleInfoGrids->item(0);
+
+        if ($vehicleInfoGrid === null) {
+            throw new RuntimeException(
+                'Vehicle information grid not found'
+            );
+        }
+
+        $infoItems = $xpath->query(
+            './div',
+            $vehicleInfoGrid
+        );
+
+        $vehicleInfo = [];
+
+        foreach ($infoItems as $infoItem) 
+        {
+            $elements = [];
+
+            foreach ($infoItem->childNodes as $childNode) {
+                if ($childNode instanceof DOMElement) {
+                    $elements[] = $childNode;
+                }
+            }
+
+            if (count($elements) < 2) {
+                continue;
+            }
+
+            $label = trim(
+                $elements[0]->textContent
+            );
+
+            $value = trim(
+                $elements[1]->textContent
+            );
+
+            if ($label === '' || $value === '') {
+                continue;
+            }
+
+            $vehicleInfo[$label] = $value;
+        }
+
+        return $vehicleInfo;
+    }
 }
