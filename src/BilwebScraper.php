@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/Car.php';
+
 class BilwebScraper
 {
     private const BASE_URL = 'https://bilweb.se';
@@ -16,17 +18,9 @@ class BilwebScraper
             . '/sok?page='
             . $page;
 
-        $html = $this->httpClient->get($url);
+        $html = $this->httpClient->get( $url );
 
-        $document = new DOMDocument();
-
-        libxml_use_internal_errors(true);
-
-        $document->loadHTML($html);
-
-        libxml_clear_errors();
-
-        $xpath = new DOMXPath($document);
+        $xpath = $this->createXpath( $html );
 
         $vehicles = $xpath->query(
             '//*[@id="vehicle-grid"]//*[@data-vehicle-id]'
@@ -112,23 +106,19 @@ class BilwebScraper
             $vehicleUrl
         );
 
-        $document = new DOMDocument();
+        $xpath = $this->createXpath( $html );
 
-        libxml_use_internal_errors(true);
+        return $this->parseVehicleInformation( $xpath );
+    }
 
-        $document->loadHTML($html);
-
-        libxml_clear_errors();
-
-        $xpath = new DOMXPath(
-            $document
-        );
-
+    private function parseVehicleInformation( DOMXPath $xpath ): array 
+    {
         $vehicleInfoGrids = $xpath->query(
             '//h4[normalize-space()="Fordonsinformation"]/parent::button/following-sibling::div[1]//div[contains(@class, "grid")][1]'
         );
 
-        $vehicleInfoGrid = $vehicleInfoGrids->item(0);
+        $vehicleInfoGrid =
+            $vehicleInfoGrids->item(0);
 
         if ($vehicleInfoGrid === null) {
             throw new RuntimeException(
@@ -147,8 +137,14 @@ class BilwebScraper
         {
             $elements = [];
 
-            foreach ($infoItem->childNodes as $childNode) {
-                if ($childNode instanceof DOMElement) {
+            foreach (
+                $infoItem->childNodes
+                as $childNode
+            ) {
+                if (
+                    $childNode
+                    instanceof DOMElement
+                ) {
                     $elements[] = $childNode;
                 }
             }
@@ -165,7 +161,10 @@ class BilwebScraper
                 $elements[1]->textContent
             );
 
-            if ($label === '' || $value === '') {
+            if (
+                $label === ''
+                || $value === ''
+            ) {
                 continue;
             }
 
@@ -173,5 +172,51 @@ class BilwebScraper
         }
 
         return $vehicleInfo;
+    }
+
+
+    private function mapVehicleInformationToCar( array $vehicleInfo, string $sourceUrl ): Car 
+    {
+        $make = $vehicleInfo['Märke']  ?? '';
+        $model = $vehicleInfo['Modell']  ?? '';
+        $modelYear = isset($vehicleInfo['Årsmodell']) ? (int) $vehicleInfo['Årsmodell'] : null;
+        $registrationNumber = $vehicleInfo['Reg.nr'] ?? null;
+        
+        
+        return new Car(
+            $make,
+            $model,
+            $modelYear,
+            $registrationNumber,
+            null,
+            null,
+            $sourceUrl
+        );
+    }
+
+    public function getCar( string $vehicleUrl ): Car 
+    {
+        $html = $this->httpClient->get( $vehicleUrl );
+
+        $xpath = $this->createXpath( $html );
+
+        $vehicleInfo = $this->parseVehicleInformation( $xpath );
+
+        return $this->mapVehicleInformationToCar( $vehicleInfo, $vehicleUrl);
+    }
+
+    private function createXpath( string $html ): DOMXPath 
+    {
+        $document = new DOMDocument();
+
+        libxml_use_internal_errors(true);
+
+        $document->loadHTML($html);
+
+        libxml_clear_errors();
+
+        return new DOMXPath(
+            $document
+        );
     }
 }
