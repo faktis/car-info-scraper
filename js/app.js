@@ -1,39 +1,34 @@
 const form = document.getElementById('search-form');
 
-form.addEventListener('submit', async function (event) {
+form.addEventListener('submit', async function (event) 
+{
     event.preventDefault();
 
     const make = document.getElementById('make').value;
     const modelYear = document.getElementById('model-year').value;
-    const registrationNumber =
-        document.getElementById('registration-number').value;
+    const registrationNumber = document.getElementById('registration-number').value;
 
-    console.log(make);
-    console.log(modelYear);
-    console.log(registrationNumber);
     const params = new URLSearchParams();
 
-    if (make !== '') {
+    if ( make !== '') 
+    {
         params.append('make', make);
     }
-
-    if (modelYear !== '') {
+    if ( modelYear !== '') 
+    {
         params.append('model_year', modelYear);
     }
-
-    if (registrationNumber !== '') {
+    if ( registrationNumber !== '') 
+    {
         params.append('registration_number', registrationNumber);
     }
-
-    console.log(params.toString());
-    const response = await fetch(
-        'search.php?' + params.toString()
-    );
-
-    if (!response.ok) {
+    
+    const response = await fetch( 'search.php?' + params.toString() );
+    if ( !response.ok ) 
+    {
         throw new Error('Search request failed');
     }
-    
+
     const cars = await response.json();
 
     const results = document.getElementById('results');
@@ -55,7 +50,8 @@ form.addEventListener('submit', async function (event) {
 
     const tbody = results.querySelector('tbody');
 
-    for (const car of cars) {
+    for (const car of cars) 
+    {
         const row = document.createElement('tr');
 
         row.innerHTML = `

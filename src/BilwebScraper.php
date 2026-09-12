@@ -6,56 +6,43 @@ class BilwebScraper
 {
     private const BASE_URL = 'https://bilweb.se';
 
-    public function __construct(
-        private HttpClient $httpClient
-    ) {
+    public function __construct( private HttpClient $httpClient ) 
+    {
     }
 
-    public function getVehicleUrlsFromPage(
-        int $page
-    ): array {
-        $url = self::BASE_URL
-            . '/sok?page='
-            . $page;
+    public function getVehicleUrlsFromPage( int $page ): array 
+    {
+        $url = self::BASE_URL . '/sok?page=' . $page;
 
         $html = $this->httpClient->get( $url );
 
         $xpath = $this->createXpath( $html );
 
-        $vehicles = $xpath->query(
-            '//*[@id="vehicle-grid"]//*[@data-vehicle-id]'
-        );
+        $vehicles = $xpath->query( '//*[@id="vehicle-grid"]//*[@data-vehicle-id]' );
 
         $vehicleUrls = [];
 
-        foreach ($vehicles as $vehicle) {
-            $vehicleId = $vehicle->getAttribute(
-                'data-vehicle-id'
-            );
+        foreach( $vehicles as $vehicle ) 
+        {
+            $vehicleId = $vehicle->getAttribute( 'data-vehicle-id' );
 
-            if ($vehicleId === '') {
+            if ( $vehicleId === '' ) 
+            {
                 continue;
             }
 
-            $links = $xpath->query(
-                './/a[@href]',
-                $vehicle
-            );
+            $links = $xpath->query( './/a[@href]', $vehicle );
 
-            foreach ($links as $link) {
-                $href = $link->getAttribute(
-                    'href'
-                );
+            foreach( $links as $link ) 
+            {
+                $href = $link->getAttribute( 'href' );
 
-                if (!str_contains(
-                    $href,
-                    $vehicleId
-                )) {
+                if( !str_contains( $href, $vehicleId )) 
+                {
                     continue;
                 }
 
-                $vehicleUrls[] =
-                    self::BASE_URL . $href;
+                $vehicleUrls[] = self::BASE_URL . $href;
 
                 break;
             }
@@ -64,37 +51,35 @@ class BilwebScraper
         return $vehicleUrls;
     }
 
-    public function getVehicleUrls(int $minimumCount): array
+    public function getVehicleUrls( int $minimumCount ): array
     {
         $vehicleUrls = [];
         $page = 1;
 
-        while (count($vehicleUrls) < $minimumCount) 
+        while( count( $vehicleUrls ) < $minimumCount ) 
         {
-            $countBefore = count($vehicleUrls); // Store the count before fetching new URLs to detect if no new URLs are found
+            $countBefore = count( $vehicleUrls ); // Store the count before fetching new URLs to detect if no new URLs are found
 
-            $pageUrls = $this->getVehicleUrlsFromPage($page);
+            $pageUrls = $this->getVehicleUrlsFromPage( $page );
 
-            if (count($pageUrls) === 0) {
+            if( count( $pageUrls ) === 0) 
+            {
                 break;
             }
 
-            $vehicleUrls = array_merge(
-                $vehicleUrls,
-                $pageUrls
-            );
+            $vehicleUrls = array_merge( $vehicleUrls, $pageUrls );
 
-            $vehicleUrls = array_values(
-                array_unique($vehicleUrls)
-            );
+            $vehicleUrls = array_values( array_unique( $vehicleUrls ) );
             
-            $countAfter = count($vehicleUrls); // Store the count after fetching new URLs
-            if ($countAfter === $countBefore) {
+            $countAfter = count( $vehicleUrls ); // Store the count after fetching new URLs
+            if( $countAfter === $countBefore ) 
+            {
                 break; // Break the loop if no new URLs were found
             }
+
             $page++;
 
-            usleep(200000);
+            usleep( 200000 ); // Sleep for 200 milliseconds to avoid overwhelming the server
         }
 
         return $vehicleUrls;
@@ -102,9 +87,7 @@ class BilwebScraper
 
     public function getVehicleInformation( string $vehicleUrl ): array 
     {
-        $html = $this->httpClient->get(
-            $vehicleUrl
-        );
+        $html = $this->httpClient->get( $vehicleUrl );
 
         $xpath = $this->createXpath( $html );
 
@@ -113,23 +96,16 @@ class BilwebScraper
 
     private function parseVehicleInformation( DOMXPath $xpath ): array 
     {
-        $vehicleInfoGrids = $xpath->query(
-            '//h4[normalize-space()="Fordonsinformation"]/parent::button/following-sibling::div[1]//div[contains(@class, "grid")][1]'
-        );
+        $vehicleInfoGrids = $xpath->query( '//h4[normalize-space()="Fordonsinformation"]/parent::button/following-sibling::div[1]//div[contains(@class, "grid")][1]' );
 
-        $vehicleInfoGrid =
-            $vehicleInfoGrids->item(0);
+        $vehicleInfoGrid = $vehicleInfoGrids->item( 0 );
 
-        if ($vehicleInfoGrid === null) {
-            throw new RuntimeException(
-                'Vehicle information grid not found'
-            );
+        if ( $vehicleInfoGrid === null ) 
+        {
+            throw new RuntimeException( 'Vehicle information grid not found' );
         }
 
-        $infoItems = $xpath->query(
-            './div',
-            $vehicleInfoGrid
-        );
+        $infoItems = $xpath->query( './div', $vehicleInfoGrid );
 
         $vehicleInfo = [];
 
@@ -137,34 +113,24 @@ class BilwebScraper
         {
             $elements = [];
 
-            foreach (
-                $infoItem->childNodes
-                as $childNode
-            ) {
-                if (
-                    $childNode
-                    instanceof DOMElement
-                ) {
+            foreach ( $infoItem->childNodes as $childNode ) 
+            {
+                if ( $childNode instanceof DOMElement ) 
+                {
                     $elements[] = $childNode;
                 }
             }
 
-            if (count($elements) < 2) {
+            if ( count( $elements ) < 2 ) 
+            {
                 continue;
             }
 
-            $label = trim(
-                $elements[0]->textContent
-            );
+            $label = trim( $elements[0]->textContent );
+            $value = trim( $elements[1]->textContent );
 
-            $value = trim(
-                $elements[1]->textContent
-            );
-
-            if (
-                $label === ''
-                || $value === ''
-            ) {
+            if ( $label === '' || $value === '') 
+            {
                 continue;
             }
 
@@ -174,22 +140,14 @@ class BilwebScraper
         return $vehicleInfo;
     }
 
-
     private function mapVehicleInformationToCar( array $vehicleInfo, string $sourceUrl ): Car 
     {
         $make = $vehicleInfo['Märke']  ?? '';
         $model = $vehicleInfo['Modell']  ?? '';
-        $modelYear = isset($vehicleInfo['Årsmodell']) ? (int) $vehicleInfo['Årsmodell'] : null;
+        $modelYear = isset( $vehicleInfo['Årsmodell'] ) ? (int) $vehicleInfo['Årsmodell'] : null;
         $registrationNumber = $vehicleInfo['Reg.nr'] ?? null;
         
-        
-        return new Car(
-            $make,
-            $model,
-            $modelYear,
-            $registrationNumber,
-            $sourceUrl
-        );
+        return new Car( $make, $model, $modelYear, $registrationNumber, $sourceUrl );
     }
 
     public function getCar( string $vehicleUrl ): Car 
@@ -207,14 +165,12 @@ class BilwebScraper
     {
         $document = new DOMDocument();
 
-        libxml_use_internal_errors(true);
+        libxml_use_internal_errors( true );
 
-        $document->loadHTML($html);
+        $document->loadHTML( $html );
 
         libxml_clear_errors();
 
-        return new DOMXPath(
-            $document
-        );
+        return new DOMXPath( $document );
     }
 }
