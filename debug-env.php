@@ -54,3 +54,10 @@ try {
 
     echo $exception->getMessage();
 }
+
+echo 'PDO MySQL available: '
+    . (extension_loaded('pdo_mysql') ? 'yes' : 'no')
+    . PHP_EOL;
+
+echo 'PDO drivers: ';
+print_r(PDO::getAvailableDrivers());
