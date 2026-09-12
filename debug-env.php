@@ -23,8 +23,6 @@ echo 'MYSQLDATABASE set: '
     . PHP_EOL;
 
 
-    <?php
-
 require_once __DIR__ . '/src/Database.php';
 
 header('Content-Type: text/plain');
